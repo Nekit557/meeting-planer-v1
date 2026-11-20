@@ -13,7 +13,19 @@ if ($method == 'GET' && $path === '/api/categories') {
     echo json_encode($categories, JSON_UNESCAPED_UNICODE);
 
 }else if($method == 'GET' && $path === '/api/questions') {
-    $stmt = $pdo->query('SELECT * FROM questions ORDER BY id DESC');
+    $stmt = $pdo->query('SELECT 
+    q.id,
+    q.question_text,
+    q.is_discussed,
+    q.created_at,
+    q.category_id,
+    c.name AS category_name,
+    q.user_id,
+    u.name AS author_name
+    FROM questions q 
+    LEFT JOIN categories c ON q.category_id = c.id
+    JOIN users u ON q.user_id = u.id
+    ORDER BY q.id DESC');
     $questions = $stmt->fetchAll();
     echo json_encode($questions, JSON_UNESCAPED_UNICODE);
 
