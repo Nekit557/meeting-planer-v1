@@ -7,19 +7,19 @@ $password = $data['password'] ?? null;
 
 if (empty($name) || empty($email) || empty($password)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Имя, Почта и пароль обязательны']);
+    echo json_encode(['error' => 'Имя, Почта и пароль обязательны'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Неверный формат почты']);
+    echo json_encode(['error' => 'Неверный формат почты'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 if (strlen($password) < 6) {
     http_response_code(400);
-    echo json_encode(['error' => 'Пароль должен быть не менее 6 символов']);
+    echo json_encode(['error' => 'Пароль должен быть не менее 6 символов'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

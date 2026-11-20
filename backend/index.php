@@ -69,7 +69,7 @@ if ($method == 'GET' && $path === '/api/categories') {
     
     if(!isset($data['is_discussed']) || !is_bool($data['is_discussed'])){
         http_response_code(400);
-        echo json_encode(['error' => 'поле обязательно должно быть true или false']);
+        echo json_encode(['error' => 'поле обязательно должно быть true или false'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -85,15 +85,18 @@ if ($method == 'GET' && $path === '/api/categories') {
         echo json_encode($updatedQuestion, JSON_UNESCAPED_UNICODE);
     } else {
         http_response_code(404);
-        echo json_encode(['error' => 'Question not found']);
+        echo json_encode(['error' => 'Question not found'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
 } else if ($method === 'POST' && $path === '/api/register') {
     require_once __DIR__ . '/api/register.php';
+
+} else if ($method === 'POST'&& $path === '/api/login') {
+    require_once __DIR__ .'/api/login.php';
 } else {
     http_response_code(404);
-    echo json_encode(['error' => 'Not Found']);
+    echo json_encode(['error' => 'Not Found'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
