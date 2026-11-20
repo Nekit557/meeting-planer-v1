@@ -50,7 +50,48 @@ if ($method == 'GET' && $path === '/api/categories') {
     http_response_code(201);
     echo json_encode($newQuestion, JSON_UNESCAPED_UNICODE);
 
-} else {
+} else if ($method === 'DELETE' && preg_match('#^/api/questions/(\d+)$#', $path, $matches)) {
+    $questionId = (int)$matches[1];
+    $stmt = $pdo->prepare('DELETE FROM questions WHERE id = :id');
+    $stmt->execute([':id' => $questionId]);
+    if ($stmt->rowCount() > 0) {
+        http_response_code(204);
+        exit;
+    } else {
+        http_response_code(404);
+        echo json_encode(['error' => 'Question not found']);
+        exit;
+    }
+
+} else if($method === 'PATCH' && preg_match('#^/api/questions/(\d+)$#', $path, $matches)) {
+    $questionId = (int)$matches[1];
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if(!isset($data['is_discussed']) || !is_bool($data['is_discussed'])){
+        http_response_code(400);
+        echo json_encode(['error' => 'поле обязательно должно быть true или false']);
+        exit;
+    }
+
+    
+    $stmt = $pdo->prepare('UPDATE questions SET is_discussed = :is_discussed WHERE id = :id RETURNING *');
+    $stmt->execute([
+        ':is_discussed' => $data['is_discussed'] ? true : false,
+        ':id' => $questionId
+    ]);
+    $updatedQuestion = $stmt->fetch();
+
+    if ($updatedQuestion) {
+        echo json_encode($updatedQuestion, JSON_UNESCAPED_UNICODE);
+    } else {
+        http_response_code(404);
+        echo json_encode(['error' => 'Question not found']);
+        exit;
+    }
+
+}
+
+else {
     http_response_code(404);
     echo json_encode(['error' => 'Not Found']);
     exit;
