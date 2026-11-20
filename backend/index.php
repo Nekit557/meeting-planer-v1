@@ -89,9 +89,9 @@ if ($method == 'GET' && $path === '/api/categories') {
         exit;
     }
 
-}
-
-else {
+} else if ($method === 'POST' && $path === '/api/register') {
+    require_once __DIR__ . '/api/register.php';
+} else {
     http_response_code(404);
     echo json_encode(['error' => 'Not Found']);
     exit;
