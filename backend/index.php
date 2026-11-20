@@ -3,6 +3,7 @@
 header('Content-Type: application/json; charset=UTF-8');// я узнал что это нужно для того что бы php передавал данные в виде json 
 
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ .'/auth.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -30,13 +31,14 @@ if ($method == 'GET' && $path === '/api/categories') {
     echo json_encode($questions, JSON_UNESCAPED_UNICODE);
 
 }else if($method === 'POST' && $path === '/api/questions'){
+    $currentUser = getAuthUser($pdo);
     $data = json_decode(file_get_contents('php://input'), true);
-    $userId = $data['user_id'] ?? null;
+    $userId = $currentUser['id'];
     $categoryId = $data['category_id'] ?? null;
     $questionText = trim($data['question_text'] ?? '');
-    if (empty($userId) || empty($questionText)) {
+    if (empty($questionText)) {
         http_response_code(400);
-        echo json_encode(['error' => 'User ID and question text are required']);
+        echo json_encode(['error' => 'текст вопросы обязательный'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -51,20 +53,47 @@ if ($method == 'GET' && $path === '/api/categories') {
     echo json_encode($newQuestion, JSON_UNESCAPED_UNICODE);
 
 } else if ($method === 'DELETE' && preg_match('#^/api/questions/(\d+)$#', $path, $matches)) {
+    $currentUser = getAuthUser($pdo);
     $questionId = (int)$matches[1];
-    $stmt = $pdo->prepare('DELETE FROM questions WHERE id = :id');
+    $stmt = $pdo->prepare('SELECT user_id FROM questions WHERE id = :id');
     $stmt->execute([':id' => $questionId]);
-    if ($stmt->rowCount() > 0) {
-        http_response_code(204);
-        exit;
-    } else {
+    $question = $stmt->fetch();
+
+    if (!$question) {
         http_response_code(404);
-        echo json_encode(['error' => 'Question not found']);
+        echo json_encode(['error' => 'Question not found'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
+    if ($question['user_id'] !== $currentUser['id'] && $currentUser['role'] !== 'admin'){
+        http_response_code(403);
+        echo json_encode(['error'=> 'Можно удалять только свои вопросы'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $stmt = $pdo->prepare('DELETE FROM questions WHERE id = :id');
+    $stmt->execute([':id' => $questionId]);
+    http_response_code(204);
+    exit;
+    
+
 } else if($method === 'PATCH' && preg_match('#^/api/questions/(\d+)$#', $path, $matches)) {
+    $currentUser = getAuthUser($pdo);
     $questionId = (int)$matches[1];
+    $stmt = $pdo->prepare('SELECT user_id FROM questions WHERE id = :id');
+    $stmt->execute([':id' => $questionId]);
+    $question = $stmt->fetch();
+    if (!$question) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Question not found'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    if ($question['user_id'] !== $currentUser['id'] && $currentUser['role'] !== 'admin'){
+        http_response_code(403);
+        echo json_encode(['error' => 'Можно редактировать только свои вопросы'], JSON_UNESCAPED_UNICODE);
+        exit;
+
+    }
     $data = json_decode(file_get_contents('php://input'), true);
     
     if(!isset($data['is_discussed']) || !is_bool($data['is_discussed'])){
