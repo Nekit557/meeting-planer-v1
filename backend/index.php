@@ -11,6 +11,33 @@ if ($method == 'GET' && $path === '/api/categories') {
     $stmt = $pdo->query('SELECT id, name FROM categories ORDER BY id');
     $categories = $stmt->fetchAll();
     echo json_encode($categories, JSON_UNESCAPED_UNICODE);
+
+}else if($method == 'GET' && $path === '/api/questions') {
+    $stmt = $pdo->query('SELECT * FROM questions ORDER BY id DESC');
+    $questions = $stmt->fetchAll();
+    echo json_encode($questions, JSON_UNESCAPED_UNICODE);
+
+}else if($method === 'POST' && $path === '/api/questions'){
+    $data = json_decode(file_get_contents('php://input'), true);
+    $userId = $data['user_id'] ?? null;
+    $categoryId = $data['category_id'] ?? null;
+    $questionText = trim($data['question_text'] ?? '');
+    if (empty($userId) || empty($questionText)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'User ID and question text are required']);
+        exit;
+    }
+
+    $stmt = $pdo->prepare('INSERT INTO questions (user_id, category_id, question_text) VALUES (:user_id, :category_id, :question_text) RETURNING *');
+    $stmt->execute([
+        ':user_id' => $userId,
+        ':category_id' => $categoryId,
+        ':question_text' => $questionText
+        ]);
+    $newQuestion = $stmt->fetch();
+    http_response_code(201);
+    echo json_encode($newQuestion, JSON_UNESCAPED_UNICODE);
+
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not Found']);
